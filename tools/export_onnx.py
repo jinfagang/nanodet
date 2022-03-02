@@ -51,7 +51,7 @@ def main(config, model_path, output_path, input_shape=(320, 320)):
         model,
         dummy_input,
         output_path,
-        verbose=True,
+        verbose=False,
         keep_initializers_as_inputs=True,
         opset_version=11,
         input_names=["data"],

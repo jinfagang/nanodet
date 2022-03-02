@@ -117,3 +117,6 @@ work_dirs/
 *.pth
 *.py~
 *.sh~
+weights/
+*.onnx
+workspace/
