@@ -121,3 +121,5 @@ weights/
 *.onnx
 workspace/
 *.bin
+*.pt
+*.wnnx
