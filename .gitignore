@@ -120,3 +120,4 @@ work_dirs/
 weights/
 *.onnx
 workspace/
+*.bin

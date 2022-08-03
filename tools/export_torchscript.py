@@ -48,6 +48,10 @@ def main(config, model_path: str, output_path: str, input_shape=(320, 320)):
         model_traced.save(output_path)
         print("Finished export to TorchScript")
 
+        o = model_traced(dummy_input)
+        o.numpy().tofile('gt.bin')
+        dummy_input.numpy().tofile('in.bin')
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
