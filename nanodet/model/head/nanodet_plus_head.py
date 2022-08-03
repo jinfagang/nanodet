@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 
 from nanodet.util import bbox2distance, distance2bbox, multi_apply, overlay_bbox_cv
+from alfred.dl.torch.common import print_shape
 
 from ...data.transform.warp import warp_boxes
 from ..loss.gfocal_loss import DistributionFocalLoss, QualityFocalLoss
@@ -498,9 +499,70 @@ class NanoDetPlusHead(nn.Module):
         proiors = torch.stack([x, y, strides, strides], dim=-1)
         return proiors.unsqueeze(0).repeat(batch_size, 1, 1)
 
+    def get_bboxes_onnx(self, cls_preds, reg_preds, input_shape):
+        """Decode the outputs to bboxes.
+        Args:
+            cls_preds (Tensor): Shape (num_imgs, num_points, num_classes).
+            reg_preds (Tensor): Shape (num_imgs, num_points, 4 * (regmax + 1)).
+            img_metas (dict): Dict of image info.
+
+        Returns:
+            results_list (list[tuple]): List of detection bboxes and labels.
+        """
+        device = cls_preds.device
+        b = cls_preds.shape[0]
+        # input_shape = (input_height, input_width)
+        input_height, input_width = input_shape
+        featmap_sizes = [
+            (math.ceil(input_height / stride), math.ceil(input_width) / stride)
+            for stride in self.strides
+        ]
+        # get grid cells of one image
+        mlvl_center_priors = [
+            self.get_single_level_center_priors(
+                b,
+                featmap_sizes[i],
+                stride,
+                dtype=torch.float32,
+                device=device,
+            )
+            for i, stride in enumerate(self.strides)
+        ]
+        center_priors = torch.cat(mlvl_center_priors, dim=1)
+        print_shape(center_priors)
+        print_shape(reg_preds)
+
+        dis_preds = self.distribution_project(reg_preds) * center_priors[..., 2, None]
+        bboxes = distance2bbox(center_priors[..., :2], dis_preds, max_shape=input_shape)
+        scores = cls_preds.sigmoid()
+
+        result_boxes = []
+        result_scores = []
+        for i in range(b):
+            # add a dummy background class at the end of all labels
+            # same with mmdetection2.0
+            score, bbox = scores[i], bboxes[i]
+            padding = score.new_zeros(score.shape[0], 1)
+            score = torch.cat([score, padding], dim=1)
+            # results = multiclass_nms(
+            #     bbox,
+            #     score,
+            #     score_thr=0.05,
+            #     nms_cfg=dict(type="nms", iou_threshold=0.6),
+            #     max_num=100,
+            # )
+            result_boxes.append(bbox)
+            result_scores.append(score)
+        result_boxes = torch.stack(result_boxes)
+        result_scores = torch.stack(result_scores)
+        print_shape(result_boxes, result_scores)
+        return result_boxes, result_scores
+
     def _forward_onnx(self, feats):
+
         """only used for onnx export"""
-        outputs = []
+        outputs_cls_preds = []
+        outputs_boxes = []
         for feat, cls_convs, gfl_cls in zip(
             feats,
             self.cls_convs,
@@ -513,6 +575,21 @@ class NanoDetPlusHead(nn.Module):
                 [self.num_classes, 4 * (self.reg_max + 1)], dim=1
             )
             cls_pred = cls_pred.sigmoid()
-            out = torch.cat([cls_pred, reg_pred], dim=1)
-            outputs.append(out.flatten(start_dim=2))
-        return torch.cat(outputs, dim=2).permute(0, 2, 1)
+            # out = torch.cat([cls_pred, reg_pred], dim=1)
+            print("in feat lvl: ", cls_pred.shape, reg_pred.shape)
+            # outputs.append(out.flatten(start_dim=2))
+            outputs_cls_preds.append(cls_pred.flatten(start_dim=2))
+            outputs_boxes.append(reg_pred.flatten(start_dim=2))
+
+        outputs_boxes = torch.cat(outputs_boxes, dim=2).permute(0, 2, 1)
+        outputs_cls_preds = torch.cat(outputs_cls_preds, dim=2).permute(0, 2, 1)
+        print_shape(outputs_boxes, outputs_cls_preds)
+        input_height = feats[0].shape[-2] * self.strides[0]
+        input_width = feats[0].shape[-1] * self.strides[0]
+        print(input_height, input_width)
+        result_boxes, result_scores = self.get_bboxes_onnx(
+            outputs_cls_preds, outputs_boxes, input_shape=(input_height, input_width)
+        )
+        # o = torch.cat(outputs, dim=2).permute(0, 2, 1)
+        # print(o.shape)
+        return result_boxes, result_scores
