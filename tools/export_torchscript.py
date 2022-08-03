@@ -40,7 +40,7 @@ def main(config, model_path: str, output_path: str, input_shape=(320, 320)):
 
     # TorchScript: tracing the model with dummy inputs
     with torch.no_grad():
-        dummy_input = torch.zeros(
+        dummy_input = torch.randn(
             1, 3, input_shape[0], input_shape[1]
         )  # Batch size = 1
         model.eval().cpu()
@@ -65,7 +65,7 @@ def parse_args():
     parser.add_argument(
         "--out_path",
         type=str,
-        default="nanodet.torchscript.pth",
+        default="nanodet.pt",
         help="TorchScript model output path.",
     )
     parser.add_argument(
