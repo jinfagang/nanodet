@@ -144,7 +144,7 @@ nn.LeakyReLU             fpn.reduce_layers.1.act  1 1 152 153 negative_slope=1.0
 nn.ChannelShuffle        channelshuffle_15        1 1 149 154 groups=2 $input=149 #149=(1,464,10,10)f32 #154=(1,464,10,10)f32
 nn.Conv2d                convbn2d_57              1 1 154 155 bias=True dilation=(1,1) groups=1 in_channels=464 kernel_size=(1,1) out_channels=96 padding=(0,0) padding_mode=zeros stride=(1,1) @bias=(96)f32 @weight=(96,464,1,1)f32 $input=154 #154=(1,464,10,10)f32 #155=(1,96,10,10)f32
 nn.LeakyReLU             fpn.reduce_layers.2.act  1 1 155 156 negative_slope=1.000000e-01 #155=(1,96,10,10)f32 #156=(1,96,10,10)f32
-nn.Upsample              fpn.upsample             1 1 156 157 align_corners=False mode=bilinear scale_factor=(2.000000e+00,2.000000e+00) size=None #156=(1,96,10,10)f32 #157=(1,96,20,20)f32
+nn.Upsample              fpn.upsample             1 1 156 157 mode=nearest scale_factor=(2.000000e+00,2.000000e+00) size=None #156=(1,96,10,10)f32 #157=(1,96,20,20)f32
 torch.cat                torch.cat_64             2 1 157 153 158 dim=1 #157=(1,96,20,20)f32 #153=(1,96,20,20)f32 #158=(1,192,20,20)f32
 nn.Conv2d                convbn2d_58              1 1 158 159 bias=True dilation=(1,1) groups=1 in_channels=192 kernel_size=(1,1) out_channels=48 padding=(0,0) padding_mode=zeros stride=(1,1) @bias=(48)f32 @weight=(48,192,1,1)f32 $input=158 #158=(1,192,20,20)f32 #159=(1,48,20,20)f32
 nn.LeakyReLU             fpn.top_down_blocks.0.blocks.0.ghost1.primary_conv.2 1 1 159 160 negative_slope=1.000000e-01 #159=(1,48,20,20)f32 #160=(1,48,20,20)f32
@@ -157,7 +157,7 @@ torch.cat                torch.cat_66             2 1 164 165 166 dim=1 #164=(1,
 nn.Conv2d                convbn2d_62              1 1 158 167 bias=True dilation=(1,1) groups=192 in_channels=192 kernel_size=(5,5) out_channels=192 padding=(2,2) padding_mode=zeros stride=(1,1) @bias=(192)f32 @weight=(192,1,5,5)f32 $input=158 #158=(1,192,20,20)f32 #167=(1,192,20,20)f32
 nn.Conv2d                convbn2d_63              1 1 167 168 bias=True dilation=(1,1) groups=1 in_channels=192 kernel_size=(1,1) out_channels=96 padding=(0,0) padding_mode=zeros stride=(1,1) @bias=(96)f32 @weight=(96,192,1,1)f32 $input=167 #167=(1,192,20,20)f32 #168=(1,96,20,20)f32
 pnnx.Expression          pnnx_expr_5              2 1 166 168 169 expr=add(@0,@1) #166=(1,96,20,20)f32 #168=(1,96,20,20)f32 #169=(1,96,20,20)f32
-nn.Upsample              pnnx_unique_0            1 1 169 170 align_corners=False mode=bilinear scale_factor=(2.000000e+00,2.000000e+00) size=None #169=(1,96,20,20)f32 #170=(1,96,40,40)f32
+nn.Upsample              pnnx_unique_0            1 1 169 170 mode=nearest scale_factor=(2.000000e+00,2.000000e+00) size=None #169=(1,96,20,20)f32 #170=(1,96,40,40)f32
 torch.cat                torch.cat_67             2 1 170 151 171 dim=1 #170=(1,96,40,40)f32 #151=(1,96,40,40)f32 #171=(1,192,40,40)f32
 nn.Conv2d                convbn2d_64              1 1 171 172 bias=True dilation=(1,1) groups=1 in_channels=192 kernel_size=(1,1) out_channels=48 padding=(0,0) padding_mode=zeros stride=(1,1) @bias=(48)f32 @weight=(48,192,1,1)f32 $input=171 #171=(1,192,40,40)f32 #172=(1,48,40,40)f32
 nn.LeakyReLU             fpn.top_down_blocks.1.blocks.0.ghost1.primary_conv.2 1 1 172 173 negative_slope=1.000000e-01 #172=(1,48,40,40)f32 #173=(1,48,40,40)f32
