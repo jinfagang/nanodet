@@ -123,3 +123,4 @@ workspace/
 *.bin
 *.pt
 *.wnnx
+test.bin test.txt tests
