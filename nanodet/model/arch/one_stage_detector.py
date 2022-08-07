@@ -42,7 +42,6 @@ class OneStageDetector(nn.Module):
         # return x[1]
         if hasattr(self, "fpn"):
             x = self.fpn(x)
-        return x[0]
         if hasattr(self, "head"):
             x = self.head(x)
         return x

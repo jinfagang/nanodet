@@ -1,4 +1,5 @@
 import math
+from tracemalloc import is_tracing
 
 import cv2
 import numpy as np
@@ -135,6 +136,8 @@ class NanoDetPlusHead(nn.Module):
     def forward(self, feats):
         if torch.onnx.is_in_onnx_export():
             return self._forward_onnx(feats)
+        elif torch.jit.is_tracing():
+            return self._forward_jit_tracing(feats)
         outputs = []
         for feat, cls_convs, gfl_cls in zip(
             feats,
@@ -559,7 +562,6 @@ class NanoDetPlusHead(nn.Module):
         return result_boxes, result_scores
 
     def _forward_onnx(self, feats):
-
         """only used for onnx export"""
         outputs_cls_preds = []
         outputs_boxes = []
@@ -593,3 +595,48 @@ class NanoDetPlusHead(nn.Module):
         # o = torch.cat(outputs, dim=2).permute(0, 2, 1)
         # print(o.shape)
         return result_boxes, result_scores
+    
+    def _forward_jit_tracing(self, feats):
+        """only used for onnx export"""
+        outputs_cls_preds = []
+        outputs_boxes = []
+        for feat, cls_convs, gfl_cls in zip(
+            feats,
+            self.cls_convs,
+            self.gfl_cls,
+        ):
+            for conv in cls_convs:
+                feat = conv(feat)
+            output = gfl_cls(feat)
+            # cls_pred, reg_pred = output.split(
+            cls_pred, reg_pred = output.split(
+                [self.num_classes, 4 * (self.reg_max + 1)], dim=1
+            )
+            cls_pred = cls_pred.sigmoid()
+            # out = torch.cat([cls_pred, reg_pred], dim=1)
+            print("[jit] in feat lvl: ", cls_pred.shape, reg_pred.shape)
+            # outputs.append(out.flatten(start_dim=2))
+            outputs_cls_preds.append(cls_pred.flatten(start_dim=2))
+            outputs_boxes.append(reg_pred.flatten(start_dim=2))
+
+        outputs_boxes = torch.cat(outputs_boxes, dim=2)
+        outputs_cls_preds = torch.cat(outputs_cls_preds, dim=2)
+        print_shape(outputs_boxes, outputs_cls_preds)
+
+        input_height = feats[0].shape[-2] * self.strides[0]
+        input_width = feats[0].shape[-1] * self.strides[0]
+        # result_boxes, result_scores = self.get_bboxes_onnx(
+        #     outputs_cls_preds, outputs_boxes, input_shape=(input_height, input_width)
+        # )
+        # o = torch.cat(outputs, dim=2).permute(0, 2, 1)
+        # print(o.shape)
+        # return result_boxes, result_scores
+
+        out = torch.cat([outputs_cls_preds, outputs_boxes], dim=1).permute(0, 2, 1)
+        # print(out[..., :self.num_classes])
+        # print(out[..., self.num_classes:])
+        return out
+
+        # out = outputs_cls_preds.permute(0, 2, 1)
+        out = outputs_cls_preds
+        return out

@@ -49,6 +49,9 @@ def main(config, model_path: str, output_path: str, input_shape=(320, 320)):
         print("Finished export to TorchScript")
 
         o = model_traced(dummy_input)
+        print(o.shape)
+        print(o[..., :80])
+        print(o[..., 80:])
         o.numpy().tofile('gt.bin')
         dummy_input.numpy().tofile('in.bin')
 

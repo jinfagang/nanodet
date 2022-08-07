@@ -105,8 +105,7 @@ class GhostPAN(nn.Module):
         num_blocks=1,
         use_res=False,
         num_extra_level=0,
-        # upsample_cfg=dict(scale_factor=2, mode="bilinear"),
-        upsample_cfg=dict(scale_factor=2, mode="nearest"),
+        upsample_cfg=dict(scale_factor=2, mode="bilinear"),
         norm_cfg=dict(type="BN"),
         activation="LeakyReLU",
     ):
